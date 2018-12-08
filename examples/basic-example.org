@@ -13,7 +13,6 @@ for handling OS resources, =bodge-ui= for handling UI and =bodge-canvas= for dra
 Lets load all required systems for our example to work.
 
 #+BEGIN_SRC lisp :eval yes
-  (cl:pushnew :bodge-gl2 cl:*features*)
   (ql:quickload :bodge-ui-window)
 #+END_SRC
 
