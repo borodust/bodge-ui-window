@@ -43,8 +43,6 @@
 ;; Define main window
 (defclass main-window (bodge-ui-window:ui-window) ()
   (:default-initargs
-   ;; For the example we use OpenGL 2.1 to draw our UI
-   :opengl-version '(2 1)
    :title "Bodge UI Window Example"
    :width *window-width*
    :height *window-height*
