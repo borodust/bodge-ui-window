@@ -1,0 +1,107 @@
+#+PROPERTY: header-args :mkdirp yes
+#+PROPERTY: header-args:lisp :results "output silent"
+#+PROPERTY: header-args:glsl :results "none"
+* Basic Example
+
+Example =bodge-ui-window= application that shows how to quickly setup UI. =bodge-ui-window= is
+an integration of several technologies to quickly setup GUI for your application: =bodge-host=
+for handling OS resources, =bodge-ui= for handling UI and =bodge-canvas= for drawing.
+
+
+** Preparations
+
+Lets load all required systems for our example to work.
+
+#+BEGIN_SRC lisp :eval yes
+  (cl:pushnew :bodge-gl2 cl:*features*)
+  (ql:quickload :bodge-ui-window)
+#+END_SRC
+
+Also lets define a package we will evaluate our code blocks in.
+
+#+BEGIN_SRC lisp :tangle basic.lisp
+  (cl:defpackage :bodge-ui-window.example.basic
+    (:use :cl :bodge-ui :bodge-host))
+#+END_SRC
+
+** UI
+
+Here we define a panel with child elements.
+
+#+BEGIN_SRC lisp :tangle basic.lisp
+  (cl:in-package :bodge-ui-window.example.basic)
+
+  (defpanel (main-panel
+              (:title "Hello Bodge UI")
+              (:origin 200 50)
+              (:width 400) (:height 400)
+              (:options :movable :resizable
+                        :minimizable :scrollable
+                        :closable))
+    (label :text "Nested:")
+    (horizontal-layout
+     (radio-group
+      (radio :label "Option 1")
+      (radio :label "Option 2" :activated t))
+     (vertical-layout
+      (check-box :label "Check 1" :width 100)
+      (check-box :label "Check 2"))
+     (vertical-layout
+      (label :text "Awesomely" :align :left)
+      (label :text "Stacked" :align :middle)
+      (label :text "Labels" :align :right)))
+    (label :text "Expand by width:")
+    (horizontal-layout
+     (button :label "Dynamic")
+     (button :label "Min-Width" :width 80)
+     (button :label "Fixed-Width" :expandable nil :width 100))
+    (label :text "Expand by ratio:")
+    (horizontal-layout
+     (button :label "1.0" :expand-ratio 1.0)
+     (button :label "0.75" :expand-ratio 0.75)
+     (button :label "0.5" :expand-ratio 0.5))
+    (label :text "Rest:")
+    (button :label "Top-Level Button"))
+#+END_SRC
+
+Feel free to change the layout or panel options and reevaluate the form. Your changes will be
+immediately applied while your application is running.
+
+** Window
+
+Lets define a window we are going to display our UI in.
+
+#+BEGIN_SRC lisp :tangle basic.lisp
+  (cl:in-package :bodge-ui-window.example.basic)
+
+  (defvar *window-width* 800)
+  (defvar *window-height* 600)
+
+  ;; Define main window
+  (defclass main-window (bodge-ui-window:ui-window) ()
+    (:default-initargs
+     ;; For the example we use OpenGL 2.1 to draw our UI
+     :opengl-version '(2 1)
+     :title "Bodge UI Window Example"
+     :width *window-width*
+     :height *window-height*
+     :panels '(main-panel)))
+#+END_SRC
+
+Crucial information here is that =main=window= inherits from =ui-window= class, which setups all
+low-level machinery for our GUI to work. We tell our window to display a panel we defined earlier
+by passing panel class in a list into =:panels= initarg.
+
+Next we define and export a function to run our example.
+#+BEGIN_SRC lisp :tangle basic.lisp
+  (cl:in-package :bodge-ui-window.example.basic)
+
+  (export 'run)
+  (defun run ()
+    (bodge-host:open-window (make-instance 'main-window)))
+#+END_SRC
+
+And run it!
+#+BEGIN_SRC lisp :eval on
+  (bodge-ui.example.basic:run)
+#+END_SRC
