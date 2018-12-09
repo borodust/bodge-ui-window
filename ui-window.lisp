@@ -2,11 +2,11 @@
   (:use :cl)
   (:export #:ui-window
            #:add-window-panel
-           #:within-rendering-thread
-           #:push-context-task
+           #:within-ui-thread
+           #:push-ui-task
            #:ui-window-canvas
            #:on-draw
-           #:on-ui-context-ready))
+           #:on-ui-ready))
 (cl:in-package :bodge-ui-window)
 
 
@@ -14,7 +14,7 @@
   (:method (window) (declare (ignore window))))
 
 
-(defgeneric on-ui-context-ready (window)
+(defgeneric on-ui-ready (window)
   (:method (window) (declare (ignore window))))
 
 
@@ -34,13 +34,13 @@
   (:default-initargs :opengl-version '(2 1)))
 
 
-(defun push-context-task (window task)
+(defun push-ui-task (window task)
   (with-slots (context-queue) window
     (bodge-concurrency:push-task task context-queue)))
 
 
-(defmacro within-rendering-thread ((window) &body body)
-  `(push-context-task ,window (lambda () ,@body)))
+(defmacro within-ui-thread ((window) &body body)
+  `(push-ui-task ,window (lambda () ,@body)))
 
 
 (defun add-window-panel (window panel-class &rest initargs &key &allow-other-keys)
@@ -107,7 +107,7 @@
              (progn
                (setup-rendering-context window)
                (initialize-ui window size)
-               (on-ui-context-ready window)
+               (on-ui-ready window)
                (unwind-protect
                     (run-rendering-loop window)
                  (release-ui window)))
@@ -143,7 +143,7 @@
 
 (defmethod bodge-host:on-viewport-size-change :around ((this ui-window) width height)
   (with-slots (canvas) this
-    (within-rendering-thread (this)
+    (within-ui-thread (this)
       (bodge-canvas:update-canvas-size canvas width height))))
 
 
