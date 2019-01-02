@@ -54,9 +54,11 @@
   (glad:init))
 
 
-(defun initialize-ui (window window-size)
+(defun initialize-ui (window window-size window-scale)
   (with-slots (ui-context ui-renderer canvas panel-classes) window
-    (setf canvas (bodge-canvas:make-canvas (bodge-math:x window-size) (bodge-math:y window-size))
+    (setf canvas (bodge-canvas:make-canvas (/ (bodge-math:x window-size) window-scale)
+                                           (/ (bodge-math:y window-size) window-scale)
+                                           :pixel-ratio window-scale)
           ui-renderer (bodge-canvas-ui:make-renderer canvas)
           ui-context (bodge-ui:make-ui ui-renderer :input-source window))
     (loop for panel-init in panel-classes
@@ -101,12 +103,14 @@
 
 (defun start-rendering-thread (window)
   (with-slots (ui-context ui-renderer exit-latch) window
-    (let ((size (bodge-host:viewport-size window)))
+    (let* ((size (bodge-host:viewport-size window))
+           (autoscaled (bodge-host:viewport-autoscaled-p window))
+           (scale (if autoscaled (bodge-host:viewport-scale window) 1f0)))
       (bodge-concurrency:in-new-thread ("rendering-thread")
         (unwind-protect
              (progn
                (setup-rendering-context window)
-               (initialize-ui window size)
+               (initialize-ui window size scale)
                (on-ui-ready window)
                (unwind-protect
                     (run-rendering-loop window)
