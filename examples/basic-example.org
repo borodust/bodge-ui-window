@@ -13,6 +13,8 @@ for handling OS resources, =bodge-ui= for handling UI and =bodge-canvas= for dra
 Lets load all required systems for our example to work.
 
 #+BEGIN_SRC lisp :eval yes
+  ;; we need to enable this feature to use OpenGL 2 compatible renderer
+  (cl:pushnew :bodge-gl2 cl:*features*)
   (ql:quickload :bodge-ui-window)
 #+END_SRC
 
@@ -73,8 +75,8 @@ Lets define a window we are going to display our UI in.
 #+BEGIN_SRC lisp :tangle basic.lisp
   (cl:in-package :bodge-ui-window.example.basic)
 
-  (defvar *window-width* 800)
-  (defvar *window-height* 600)
+  (defparameter *window-width* 800)
+  (defparameter *window-height* 600)
 
   ;; Define main window
   (defclass main-window (bodge-ui-window:ui-window) ()
@@ -82,10 +84,14 @@ Lets define a window we are going to display our UI in.
      :title "Bodge UI Window Example"
      :width *window-width*
      :height *window-height*
-     :panels '(main-panel)))
+     :panels '(main-panel)
+     :floating t
+     ;; for better compatibility we are going to use OpenGL 2.1
+     ;; by default, version 3.3 is used
+     :opengl-version '(2 1)))
 #+END_SRC
 
-Crucial information here is that =main=window= inherits from =ui-window= class, which setups all
+Crucial information here is that =main-window= inherits from =ui-window= class, which setups all
 low-level machinery for our GUI to work. We tell our window to display a panel we defined earlier
 by passing panel class in a list into =:panels= initarg.
 

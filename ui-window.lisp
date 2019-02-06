@@ -30,8 +30,8 @@
    (context-queue :initform (bodge-concurrency:make-task-queue))
    (exit-latch :initform (mt:make-latch))
    (panel-classes :initarg :panels :initform nil)
-   (background-color :initform (bodge-math:vec4 0.2 0.2 0.2 0.0)))
-  (:default-initargs :opengl-version '(2 1)))
+   (background-color :initform (bodge-math:vec4 0.2 0.2 0.2 0.0))
+   (framebuffer-size :initform nil)))
 
 
 (defun push-ui-task (window task)
@@ -54,11 +54,11 @@
   (glad:init))
 
 
-(defun initialize-ui (window window-size window-scale)
+(defun initialize-ui (window window-size pixel-ratio)
   (with-slots (ui-context ui-renderer canvas panel-classes) window
-    (setf canvas (bodge-canvas:make-canvas (/ (bodge-math:x window-size) window-scale)
-                                           (/ (bodge-math:y window-size) window-scale)
-                                           :pixel-ratio window-scale)
+    (setf canvas (bodge-canvas:make-canvas (bodge-math:x window-size)
+                                           (bodge-math:y window-size)
+                                           :pixel-ratio pixel-ratio)
           ui-renderer (bodge-canvas-ui:make-renderer canvas)
           ui-context (bodge-ui:make-ui ui-renderer :input-source window))
     (loop for panel-init in panel-classes
@@ -74,10 +74,14 @@
 
 
 (defun render-ui (window)
-  (with-slots (ui-context canvas background-color) window
-    (when background-color
-      (bodge-canvas:clear-buffers background-color))
+  (with-slots (ui-context canvas background-color framebuffer-size) window
     (bodge-canvas:with-canvas (canvas)
+      (when background-color
+        (bodge-canvas:clear-buffers background-color))
+      (when framebuffer-size
+        (bodge-canvas:reset-viewport 0 0
+                                     (bodge-math:x framebuffer-size)
+                                     (bodge-math:y framebuffer-size)))
       (on-draw window))
     (bodge-ui:compose-ui ui-context)
     (bodge-host:swap-buffers window)))
@@ -103,14 +107,15 @@
 
 (defun start-rendering-thread (window)
   (with-slots (ui-context ui-renderer exit-latch) window
-    (let* ((size (bodge-host:viewport-size window))
-           (autoscaled (bodge-host:viewport-autoscaled-p window))
-           (scale (if autoscaled (bodge-host:viewport-scale window) 1f0)))
+    (let* ((viewport-size (bodge-host:viewport-size window))
+           (framebuffer-size (bodge-host:framebuffer-size window))
+           (pixel-ratio (/ (bodge-math:x framebuffer-size)
+                           (bodge-math:x viewport-size))))
       (bodge-concurrency:in-new-thread ("rendering-thread")
         (unwind-protect
              (progn
                (setup-rendering-context window)
-               (initialize-ui window size scale)
+               (initialize-ui window viewport-size pixel-ratio)
                (on-ui-ready window)
                (unwind-protect
                     (run-rendering-loop window)
@@ -147,8 +152,25 @@
 
 (defmethod bodge-host:on-viewport-size-change :around ((this ui-window) width height)
   (with-slots (canvas) this
-    (within-ui-thread (this)
-      (bodge-canvas:update-canvas-size canvas width height))))
+    (let* ((framebuffer-size (bodge-host:framebuffer-size this))
+           (pixel-ratio (/ (bodge-math:x framebuffer-size) width)))
+      (within-ui-thread (this)
+        (bodge-canvas:update-canvas-size canvas width height)
+        (bodge-canvas:update-canvas-pixel-ratio canvas pixel-ratio)))
+    (call-next-method)))
+
+
+(defmethod bodge-host:on-framebuffer-size-change :around ((this ui-window) width height)
+  (with-slots (canvas framebuffer-size) this
+    (let* ((viewport-size (bodge-host:viewport-size this))
+           (pixel-ratio (/ width (bodge-math:x viewport-size))))
+      (within-ui-thread (this)
+        (if framebuffer-size
+            (setf (bodge-math:x framebuffer-size) width
+                  (bodge-math:y framebuffer-size) height)
+            (setf framebuffer-size (bodge-math:vec2 width height)))
+        (bodge-canvas:update-canvas-pixel-ratio canvas pixel-ratio)))
+    (call-next-method)))
 
 
 (defmethod bodge-ui:next-mouse-interaction ((this ui-window))

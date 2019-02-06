@@ -37,8 +37,8 @@
 
 (cl:in-package :bodge-ui-window.example.basic)
 
-(defvar *window-width* 800)
-(defvar *window-height* 600)
+(defparameter *window-width* 800)
+(defparameter *window-height* 600)
 
 ;; Define main window
 (defclass main-window (bodge-ui-window:ui-window) ()
@@ -46,7 +46,11 @@
    :title "Bodge UI Window Example"
    :width *window-width*
    :height *window-height*
-   :panels '(main-panel)))
+   :panels '(main-panel)
+   :floating t
+   ;; for better compatibility we are going to use OpenGL 2.1
+   ;; by default, version 3.3 is used
+   :opengl-version '(2 1)))
 
 (cl:in-package :bodge-ui-window.example.basic)
 
