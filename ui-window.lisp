@@ -75,13 +75,10 @@
 
 (defun render-ui (window)
   (with-slots (ui-context canvas background-color framebuffer-size) window
+    (when background-color
+      (bodge-canvas:clear-buffers background-color))
     (bodge-canvas:with-canvas (canvas)
-      (when background-color
-        (bodge-canvas:clear-buffers background-color))
-      (when framebuffer-size
-        (bodge-canvas:reset-viewport 0 0
-                                     (bodge-math:x framebuffer-size)
-                                     (bodge-math:y framebuffer-size)))
+      (bodge-canvas:reset-viewport)
       (on-draw window))
     (bodge-ui:compose-ui ui-context)
     (bodge-host:swap-buffers window)))
@@ -124,8 +121,9 @@
 
 
 (defmethod bodge-host:on-init :around ((this ui-window))
-  (with-slots (ui-context ui-renderer enabled-p) this
-    (setf enabled-p t)
+  (with-slots (ui-context ui-renderer enabled-p framebuffer-size) this
+    (setf enabled-p t
+          framebuffer-size (bodge-host:framebuffer-size this))
     (start-rendering-thread this))
   (call-next-method))
 
@@ -165,10 +163,8 @@
     (let* ((viewport-size (bodge-host:viewport-size this))
            (pixel-ratio (/ width (bodge-math:x viewport-size))))
       (within-ui-thread (this)
-        (if framebuffer-size
-            (setf (bodge-math:x framebuffer-size) width
-                  (bodge-math:y framebuffer-size) height)
-            (setf framebuffer-size (bodge-math:vec2 width height)))
+        (setf (bodge-math:x framebuffer-size) width
+              (bodge-math:y framebuffer-size) height)
         (bodge-canvas:update-canvas-pixel-ratio canvas pixel-ratio)))
     (call-next-method)))
 

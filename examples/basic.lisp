@@ -49,7 +49,7 @@
    :panels '(main-panel)
    :floating t
    ;; for better compatibility we are going to use OpenGL 2.1
-   ;; by default, version 3.3 is used
+   ;; or version 3.3 is used by default
    :opengl-version '(2 1)))
 
 (cl:in-package :bodge-ui-window.example.basic)
