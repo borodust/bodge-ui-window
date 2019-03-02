@@ -31,7 +31,8 @@
    (exit-latch :initform (mt:make-latch))
    (panel-classes :initarg :panels :initform nil)
    (background-color :initform (bodge-math:vec4 0.2 0.2 0.2 0.0))
-   (framebuffer-size :initform nil)))
+   (framebuffer-size :initform nil)
+   (close-on-hiding :initform t :initarg :close-on-hiding)))
 
 
 (defun push-ui-task (window task)
@@ -133,6 +134,14 @@
     (setf enabled-p nil)
     (mt:wait-for-latch exit-latch))
   (call-next-method))
+
+
+(defmethod bodge-host:on-hide :around ((this ui-window))
+  (with-slots (close-on-hiding) this
+    (unwind-protect
+         (call-next-method)
+      (when close-on-hiding
+        (bodge-host:close-window this)))))
 
 
 (defmethod bodge-host:on-mouse-action :around ((this ui-window) button action)
