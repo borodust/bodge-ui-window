@@ -1,5 +1,6 @@
 (cl:defpackage :bodge-ui-window.example.basic
-  (:use :cl :bodge-ui :bodge-host))
+  (:use :cl :bodge-ui :bodge-host)
+  (:export #:run))
 
 (cl:in-package :bodge-ui-window.example.basic)
 

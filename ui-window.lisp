@@ -2,11 +2,12 @@
   (:use :cl)
   (:export #:ui-window
            #:add-window-panel
-           #:within-ui-thread
-           #:push-ui-task
            #:ui-window-canvas
+           #:ui-window-context
            #:on-draw
-           #:on-ui-ready))
+           #:on-ui-ready
+           #:within-rendering-thread
+           #:push-rendering-task))
 (cl:in-package :bodge-ui-window)
 
 
@@ -20,7 +21,7 @@
 
 (defclass ui-window (bodge-host:window)
   ((canvas :initform nil :reader ui-window-canvas)
-   (ui-context :initform nil)
+   (ui-context :initform nil :reader ui-window-context)
    (ui-renderer :initform nil)
    (enabled-p :initform t)
    (mouse-actions :initform (list))
@@ -35,13 +36,13 @@
    (close-on-hiding :initform t :initarg :close-on-hiding)))
 
 
-(defun push-ui-task (window task)
+(defun push-rendering-task (window task)
   (with-slots (context-queue) window
     (bodge-concurrency:push-task task context-queue)))
 
 
-(defmacro within-ui-thread ((window) &body body)
-  `(push-ui-task ,window (lambda () ,@body)))
+(defmacro within-rendering-thread ((window) &body body)
+  `(push-rendering-task ,window (lambda () ,@body)))
 
 
 (defun add-window-panel (window panel-class &rest initargs &key &allow-other-keys)
@@ -161,7 +162,7 @@
   (with-slots (canvas) this
     (let* ((framebuffer-size (bodge-host:framebuffer-size this))
            (pixel-ratio (/ (bodge-math:x framebuffer-size) width)))
-      (within-ui-thread (this)
+      (within-rendering-thread (this)
         (bodge-canvas:update-canvas-size canvas width height)
         (bodge-canvas:update-canvas-pixel-ratio canvas pixel-ratio)))
     (call-next-method)))
@@ -171,7 +172,7 @@
   (with-slots (canvas framebuffer-size) this
     (let* ((viewport-size (bodge-host:viewport-size this))
            (pixel-ratio (/ width (bodge-math:x viewport-size))))
-      (within-ui-thread (this)
+      (within-rendering-thread (this)
         (setf (bodge-math:x framebuffer-size) width
               (bodge-math:y framebuffer-size) height)
         (bodge-canvas:update-canvas-pixel-ratio canvas pixel-ratio)))
