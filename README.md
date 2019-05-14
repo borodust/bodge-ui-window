@@ -17,8 +17,10 @@ Have a look at [basic example](examples/basic-example.org) source.
 ;; Update main dist just in case
 (ql:update-dist "quicklisp")
 
+;; Uncomment and evaluate next line only if you wish to enable OpenGL 2 renderer
+;; (cl:pushnew :bodge-gl2 cl:*features*)
+
 ;; Load the example
-(cl:pushnew :bodge-gl2 cl:*features*)
 (ql:quickload :bodge-ui-window/examples)
 ;; And run it!
 (bodge-ui-window.example.basic:run)

@@ -49,9 +49,8 @@
    :height *window-height*
    :panels '(main-panel)
    :floating t
-   ;; for better compatibility we are going to use OpenGL 2.1
-   ;; or version 3.3 is used by default
-   :opengl-version '(2 1)))
+   :opengl-version #+bodge-gl2 '(2 1)
+                   #-bodge-gl2 '(3 3)))
 
 (cl:in-package :bodge-ui-window.example.basic)
 

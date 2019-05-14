@@ -13,8 +13,8 @@ for handling OS resources, =bodge-ui= for handling UI and =bodge-canvas= for dra
 Lets load all required systems for our example to work.
 
 #+BEGIN_SRC lisp :eval yes
-  ;; we need to enable this feature to use OpenGL 2 compatible renderer
-  (cl:pushnew :bodge-gl2 cl:*features*)
+  ;; if you want to use OpenGL 2 renderer uncomment next line
+  ;; (cl:pushnew :bodge-gl2 cl:*features*)
   (ql:quickload :bodge-ui-window)
 #+END_SRC
 
@@ -87,9 +87,8 @@ Lets define a window we are going to display our UI in.
      :height *window-height*
      :panels '(main-panel)
      :floating t
-     ;; for better compatibility we are going to use OpenGL 2.1
-     ;; or version 3.3 is used by default
-     :opengl-version '(2 1)))
+     :opengl-version #+bodge-gl2 '(2 1)
+                     #-bodge-gl2 '(3 3)))
 #+END_SRC
 
 Crucial information here is that =main-window= inherits from =ui-window= class, which setups all
