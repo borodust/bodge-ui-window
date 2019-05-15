@@ -26,6 +26,7 @@
    (enabled-p :initform t)
    (mouse-actions :initform (list))
    (cursor-position :initform (bodge-math:vec2))
+   (scroll-offset :initform (bodge-math:vec2))
    (characters :initform (make-array 0 :adjustable t :fill-pointer 0 :element-type 'character))
    (keys :initform (make-array 0 :adjustable t :fill-pointer 0 :element-type 'cons))
    (context-queue :initform (bodge-concurrency:make-task-queue))
@@ -158,6 +159,13 @@
   (call-next-method))
 
 
+(defmethod bodge-host:on-scroll :around ((this ui-window) x y)
+  (with-slots (scroll-offset) this
+    (setf (bodge-math:x scroll-offset) x
+          (bodge-math:y scroll-offset) y))
+  (call-next-method))
+
+
 (defmethod bodge-host:on-viewport-size-change :around ((this ui-window) width height)
   (with-slots (canvas) this
     (let* ((framebuffer-size (bodge-host:framebuffer-size this))
@@ -214,3 +222,13 @@
     (unless (alexandria:emptyp keys)
       (destructuring-bind (key . state) (vector-pop keys)
         (values key state)))))
+
+
+(defmethod bodge-ui:next-scroll ((this ui-window)
+                                 &optional (result-vec2 (bodge-math:vec2)))
+  (with-slots (scroll-offset) this
+    (setf (bodge-math:x result-vec2) (bodge-math:x scroll-offset)
+          (bodge-math:y result-vec2) (bodge-math:y scroll-offset)
+          (bodge-math:x scroll-offset) 0
+          (bodge-math:y scroll-offset) 0)
+    result-vec2))
