@@ -4,7 +4,8 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "MIT"
-  :depends-on (bodge-utilities bodge-math bodge-host bodge-ui bodge-canvas bodge-canvas-ui
+  :depends-on (bodge-utilities bodge-concurrency bodge-math bodge-host bodge-ui
+                               bodge-canvas bodge-canvas-ui
                                glad-blob bodge-glad)
   :serial t
   :components ((:file "ui-window")))

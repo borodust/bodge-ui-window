@@ -10,6 +10,11 @@
            #:push-rendering-task))
 (cl:in-package :bodge-ui-window)
 
+(bodge-util:define-constant +double-float-drift-time-correction+ 0.0000001d0
+  :test #'=)
+
+(bodge-util:define-constant +frame-time+ (float 1/60 0d0)
+  :test #'=)
 
 (defgeneric on-draw (window)
   (:method (window) (declare (ignore window))))
@@ -34,6 +39,7 @@
    (panel-classes :initarg :panels :initform nil)
    (background-color :initform (bodge-math:vec4 0.2 0.2 0.2 0.0))
    (framebuffer-size :initform nil)
+   (frame-queue :initform nil)
    (close-on-hiding :initform t :initarg :close-on-hiding)))
 
 
@@ -53,17 +59,35 @@
 
 (defun setup-rendering-context (window)
   (bodge-host:bind-main-rendering-context window)
-  (setf (bodge-host:swap-interval) 1)
+  (setf (bodge-host:swap-interval) -1)
   (glad:init))
 
 
+(defun %reschedule-frame (queue item)
+  (destructuring-bind (expected-time . interval) item
+    (let* ((current-time (bodge-util:real-time-seconds))
+           (adjusted-interval (- interval
+                                 (- current-time expected-time
+                                    +double-float-drift-time-correction+)))
+           (rescheduled-wait (if (< adjusted-interval 0)
+                                 (mod adjusted-interval interval)
+                                 adjusted-interval))
+           (new-expected-time (+ current-time rescheduled-wait)))
+      (setf (car item) new-expected-time)
+      (muth:blocking-timed-queue-push queue item rescheduled-wait))))
+
+
 (defun initialize-ui (window window-size pixel-ratio)
-  (with-slots (ui-context ui-renderer canvas panel-classes) window
+  (with-slots (ui-context ui-renderer canvas panel-classes frame-queue) window
     (setf canvas (bodge-canvas:make-canvas (bodge-math:x window-size)
                                            (bodge-math:y window-size)
                                            :pixel-ratio pixel-ratio)
           ui-renderer (bodge-canvas-ui:make-renderer canvas)
-          ui-context (bodge-ui:make-ui ui-renderer :input-source window))
+          ui-context (bodge-ui:make-ui ui-renderer :input-source window)
+          frame-queue (muth:make-blocking-timed-queue))
+    (bodge-host:swap-buffers window)
+    (%reschedule-frame frame-queue (cons (bodge-util:real-time-seconds)
+                                         +frame-time+))
     (loop for panel-init in panel-classes
           for args = (bodge-util:ensure-list panel-init)
           do (apply #'add-window-panel window args))))
@@ -88,12 +112,14 @@
 
 
 (defun run-rendering-loop (window)
-  (with-slots (enabled-p context-queue) window
+  (with-slots (enabled-p context-queue frame-queue) window
     (tagbody begin
        (restart-case
            (loop while enabled-p
-                 do (render-ui window)
-                    (bodge-concurrency:drain context-queue))
+                 for frame-item = (muth:blocking-timed-queue-pop frame-queue)
+                 do (%reschedule-frame frame-queue frame-item)
+                    (bodge-concurrency:drain context-queue)
+                    (render-ui window))
          (continue-rendering ()
            :report "Restart rendering loop"
            (setf enabled-p t)
