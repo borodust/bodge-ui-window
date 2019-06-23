@@ -20,4 +20,5 @@
   :depends-on (bodge-ui-window)
   :pathname "examples"
   :serial t
-  :components ((:file "basic")))
+  :components ((:file "basic")
+               (:file "styling")))

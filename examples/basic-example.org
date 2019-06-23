@@ -106,5 +106,5 @@ Next we define and export a function to run our example.
 
 And run it!
 #+BEGIN_SRC lisp :eval on
-  (bodge-ui.example.basic:run)
+  (bodge-ui-window.example.basic:run)
 #+END_SRC
