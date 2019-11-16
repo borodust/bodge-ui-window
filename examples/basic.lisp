@@ -21,7 +21,7 @@
     (check-box :label "Check 2"))
    (vertical-layout
     (label :text "Awesomely" :align :left)
-    (label :text "Stacked" :align :middle)
+    (label :text "Stacked" :align :centered)
     (label :text "Labels" :align :right)))
   (label :text "Expand by width:")
   (horizontal-layout
