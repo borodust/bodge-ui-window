@@ -21,4 +21,5 @@
   :pathname "examples"
   :serial t
   :components ((:file "basic")
-               (:file "styling")))
+               (:file "styling")
+               (:file "drawing")))

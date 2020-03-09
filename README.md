@@ -4,9 +4,12 @@ Utility to quickly setup GUI for your Common Lisp application. It's an
 integration of several technologies: `bodge-host` for managing OS resources and
 input, `bodge-ui` for handling UI and `bodge-canvas` for drawing.
 
-## Example
+## Examples
 
-Have a look at [basic example](examples/basic-example.org) source.
+* [Basic](examples/basic-example.org)
+* [Styling](examples/styling-example.org)
+* [Drawing](examples/drawing-example.org)
+
 
 ## Install
 
