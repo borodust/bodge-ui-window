@@ -6,9 +6,12 @@
            #:ui-window-context
            #:on-draw
            #:on-ui-ready
+           #:on-ui-close
            #:within-rendering-thread
            #:push-rendering-task))
 (cl:in-package :bodge-ui-window)
+
+(declaim (special *ui-window*))
 
 (bodge-util:define-constant +double-float-drift-time-correction+ 0.0000001d0
   :test #'=)
@@ -21,6 +24,10 @@
 
 
 (defgeneric on-ui-ready (window)
+  (:method (window) (declare (ignore window))))
+
+
+(defgeneric on-ui-close (window)
   (:method (window) (declare (ignore window))))
 
 
@@ -75,6 +82,10 @@
            (new-expected-time (+ current-time rescheduled-wait)))
       (setf (car item) new-expected-time)
       (muth:blocking-timed-queue-push queue item rescheduled-wait))))
+
+
+(defun ui-window ()
+  *ui-window*)
 
 
 (defun initialize-ui (window window-size pixel-ratio)
@@ -139,12 +150,13 @@
                            (bodge-math:x viewport-size))))
       (bodge-concurrency:in-new-thread ("rendering-thread")
         (unwind-protect
-             (progn
+             (let ((*ui-window* window))
                (setup-rendering-context window)
                (initialize-ui window viewport-size pixel-ratio)
                (on-ui-ready window)
                (unwind-protect
                     (run-rendering-loop window)
+                 (on-ui-close window)
                  (release-ui window)))
           (mt:open-latch exit-latch))))))
 

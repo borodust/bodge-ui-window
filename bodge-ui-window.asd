@@ -22,4 +22,5 @@
   :serial t
   :components ((:file "basic")
                (:file "styling")
-               (:file "drawing")))
+               (:file "drawing")
+               (:file "custom")))

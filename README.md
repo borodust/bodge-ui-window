@@ -9,7 +9,7 @@ input, `bodge-ui` for handling UI and `bodge-canvas` for drawing.
 * [Basic](examples/basic-example.org)
 * [Styling](examples/styling-example.org)
 * [Drawing](examples/drawing-example.org)
-
+* [Custom Widget](examples/custom-widget-example.org)
 
 ## Install
 

@@ -1,0 +1,129 @@
+(cl:defpackage :bodge-ui-window.example.custom
+  (:use :cl :bodge-ui :bodge-host :bodge-canvas)
+  (:export #:run))
+
+(cl:in-package :bodge-ui-window.example.custom)
+
+(defgeneric resource-map-of (window))
+
+(defun get-resource (name)
+  (car (gethash name (resource-map-of (bodge-ui-window:ui-window)))))
+
+
+(defvar *trashcan-open-paint* nil)
+(defvar *trashcan-close-paint* nil)
+
+(defparameter *zero-origin* (bodge-math:vec2 0 0))
+(defparameter *active-color* (bodge-math:vec4 0.3 0.3 0.3 1.0))
+(defparameter *hover-color* (bodge-math:vec4 0.5 0.5 0.5 1.0))
+(defparameter *default-color* (bodge-math:vec4 0.0 0.0 0.0 1.0))
+(defparameter *text-color* (bodge-math:vec4 0.9 0.9 0.9 1.0))
+
+(defvar *trashcan-opened-p* nil)
+
+(defclass custom-button (custom-widget) ())
+
+
+(defmethod render-custom-widget ((this custom-button) origin width height)
+  (let ((paint (cond
+                 ((and (custom-widget-hovered-p this) (custom-widget-pressed-p this :left)) *active-color*)
+                 ((custom-widget-hovered-p this) *hover-color*)
+                 (t *default-color*))))
+    (bodge-canvas:draw-rect origin width height :fill-paint paint))
+  (bodge-canvas:with-retained-canvas ()
+    (bodge-canvas:translate-canvas (+ (bodge-math:x origin) 12) (+ (bodge-math:y origin) 9))
+    (bodge-canvas:draw-text *zero-origin* "Hello" *text-color*))
+  (bodge-canvas:with-retained-canvas ()
+    (bodge-canvas:translate-canvas (+ (bodge-math:x origin) (- width 30)) (+ (bodge-math:y origin) 1))
+    (bodge-canvas:scale-canvas 0.5 0.5)
+    (bodge-canvas:draw-image *zero-origin* 50 50 (get-resource (if *trashcan-opened-p* :trash-open :trash-close)))))
+
+
+(let ((output *standard-output*))
+  (defun shout (text)
+    (format output "~%~A" text)
+    (finish-output output)))
+
+(defun on-hover (window &key)
+  (declare (ignore window))
+  (shout "hovering"))
+
+(defun on-leave (window &key)
+  (declare (ignore window))
+  (shout "leaving"))
+
+(defun on-click (window &key button)
+  (declare (ignore window))
+  (shout (format nil "~A clicked" button)))
+
+(defun on-mouse-release (window &key button)
+  (declare (ignore window))
+  (shout (format nil "~A released" button)))
+
+(defmethod custom-widget-on-mouse-press ((this custom-button) button)
+  (declare (ignore this))
+  (shout (format nil "~A pressed" button))
+  (setf *trashcan-opened-p* (not *trashcan-opened-p*)))
+
+(cl:in-package :bodge-ui-window.example.custom)
+
+(defpanel (main-panel
+           (:title "Custom Bodge UI")
+           (:origin 200 50)
+           (:width 400) (:height 400)
+           (:options :movable :resizable
+                     :minimizable :scrollable
+                     :closable))
+  (label :text "Awesome widget")
+  (custom-button :height 100
+                 :on-hover #'on-hover
+                 :on-leave #'on-leave
+                 :on-click #'on-click
+                 :on-mouse-release #'on-mouse-release))
+
+(cl:in-package :bodge-ui-window.example.custom)
+
+(defparameter *window-width* 800)
+(defparameter *window-height* 600)
+
+(defparameter *trashcan-open-path* (asdf:system-relative-pathname :bodge-ui-window/examples "examples/trashcan_open.png"))
+(defparameter *trashcan-close-path* (asdf:system-relative-pathname :bodge-ui-window/examples "examples/trashcan_closed.png"))
+
+
+;; Define main window
+(defclass main-window (bodge-ui-window:ui-window)
+  ((resource-map :initform (make-hash-table) :reader resource-map-of))
+  (:default-initargs
+   :title "Bodge UI Window Custom Widget Example"
+   :width *window-width*
+   :height *window-height*
+   :panels '(main-panel)
+   :floating t
+   :opengl-version #+bodge-gl2 '(2 1)
+                   #-bodge-gl2 '(3 3)))
+
+
+(defmethod bodge-ui-window:on-ui-ready ((this main-window))
+  (with-slots (resource-map) this
+    (labels ((register-resource (name type resource)
+               (setf (gethash name resource-map) (cons resource type)))
+             (register-image-paint (name path)
+               (register-resource name :image (bodge-canvas:make-image-paint
+                                               (bodge-ui-window:ui-window-canvas this)
+                                               (alexandria:read-file-into-byte-vector path)
+                                               :flip-vertically t))))
+      (register-image-paint :trash-open *trashcan-open-path*)
+      (register-image-paint :trash-close *trashcan-close-path*))))
+
+
+(defmethod bodge-ui-window:on-ui-close ((this main-window))
+  (with-slots (resource-map) this
+    (loop for (resource . type) being the hash-value of resource-map
+          do (case type
+               (:image (bodge-canvas:destroy-image-paint (bodge-ui-window:ui-window-canvas this) resource))))))
+
+(cl:in-package :bodge-ui-window.example.custom)
+
+(export 'run)
+(defun run ()
+  (bodge-host:open-window (make-instance 'main-window)))
