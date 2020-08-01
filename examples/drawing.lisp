@@ -6,12 +6,18 @@
 
 
 (defvar *active-layer* :layer-1)
+(defvar *active-text* "Board")
 
 
 (defun layer-updater (new-layer)
   (lambda (panel)
     (declare (ignore panel))
     (setf *active-layer* new-layer)))
+
+
+(defun refresh-text (panel)
+  (declare (ignore panel))
+  (setf *active-text* (text-of (find-element :text))))
 
 
 (defpanel (main-panel
@@ -25,7 +31,10 @@
    (radio :label "All" :on-click (layer-updater nil))
    (radio :label "Layer 1" :activated t :on-click (layer-updater :layer-1))
    (radio :label "Layer 2" :on-click (layer-updater :layer-2))
-   (radio :label "Layer 3" :on-click (layer-updater :layer-3))))
+   (radio :label "Layer 3" :on-click (layer-updater :layer-3)))
+  (horizontal-layout
+   (text-edit :name :text :text "Board")
+   (button :label "Refresh" :expandable nil :width 70 :on-click #'refresh-text)))
 
 (cl:in-package :bodge-ui-window.example.drawing)
 
@@ -97,8 +106,12 @@
 
 
 (defmethod bodge-ui-window:on-draw ((this main-window))
-  (translate-canvas 100 100)
-  (draw-board *active-layer*))
+  (with-retained-canvas
+    (translate-canvas 100 100)
+    (draw-board *active-layer*))
+  (translate-canvas 100 50)
+  (scale-canvas 2 2)
+  (draw-text (vec2 0 0) *active-text* (vec4 0.7 0.7 0.7 1)))
 
 (cl:in-package :bodge-ui-window.example.drawing)
 
