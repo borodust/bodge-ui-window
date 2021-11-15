@@ -6,7 +6,6 @@
 Example =bodge-ui-window= application that shows how to use =bodge-ui= custom widgets.
 
 ** Preparations
-n
 Lets load all required systems for our example to work.
 
 #+BEGIN_SRC lisp :eval yes
